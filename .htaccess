@@ -1,0 +1,3 @@
+SSLRequireSSL
+SSLVerifyClient optional
+SSLOptions +StdEnvVars +ExportCertData

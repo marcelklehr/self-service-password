@@ -493,6 +493,8 @@ function send_mail($mailer, $mail, $mail_from, $mail_from_name, $subject, $body,
         $body = str_replace('{'.$key.'}', $value, $body);
     }
 
+    $mailer->clearAddresses();
+    $mailer->clearReplyTos();
     $mailer->setFrom($mail_from, $mail_from_name);
     $mailer->addReplyTo($mail_from, $mail_from_name);
     $mailer->addAddress($mail);
@@ -557,4 +559,143 @@ function check_recaptcha($recaptcha_privatekey, $recaptcha_request_method, $resp
     }
 
     return '';
+}
+
+function create_user($ldap, $dn, $login, $mail, $cn, $password, $ad_mode=FALSE, $ad_options, $samba_mode, $samba_options, $shadow_options, $hash, $hash_options) {
+	$result = "";
+	
+	$time = time();
+
+	
+	// extract surname
+	$names = explode(' ', $cn);
+	$sn = $names[count($names)-1];
+	$givenName = implode(' ', array_slice($names, 0, count($names)-1));
+	
+	$userdata = [
+		'objectclass' => [
+				'person',
+				'authorizedServiceObject',
+				'inetOrgPerson',
+				'ldapPublicKey',
+				'organizationalPerson'
+		],
+		'mail' => $mail,
+		'sn' => $sn,
+		'givenName' => $givenName,
+		'cn' => $cn
+	];
+	
+	# Set Samba password value
+	if ( $samba_mode ) {
+		$userdata["sambaNTPassword"] = make_md4_password($password);
+		$userdata["sambaPwdLastSet"] = $time;
+		if ( isset($samba_options['min_age']) && $samba_options['min_age'] > 0 ) {
+			$userdata["sambaPwdCanChange"] = $time + ( $samba_options['min_age'] * 86400 );
+		}
+		if ( isset($samba_options['max_age']) && $samba_options['max_age'] > 0 ) {
+			$userdata["sambaPwdMustChange"] = $time + ( $samba_options['max_age'] * 86400 );
+		}
+	}
+	
+	# Get hash type if hash is set to auto
+	if ( !$ad_mode && $hash == "auto" ) {
+		$search_userpassword = ldap_read( $ldap, $dn, "(objectClass=*)", array("userPassword") );
+		if ( $search_userpassword ) {
+			$userpassword = ldap_get_values($ldap, ldap_first_entry($ldap,$search_userpassword), "userPassword");
+			if ( isset($userpassword) ) {
+				if ( preg_match( '/^\{(\w+)\}/', $userpassword[0], $matches ) ) {
+					$hash = strtoupper($matches[1]);
+				}
+			}
+		}
+	}
+	
+	# Transform password value
+	if ( $ad_mode ) {
+		$password = make_ad_password($password);
+	} else {
+		# Hash password if needed
+		if ( $hash == "SSHA" ) {
+			$password = make_ssha_password($password);
+		}
+		if ( $hash == "SSHA256" ) {
+			$password = make_ssha256_password($password);
+		}
+		if ( $hash == "SSHA384" ) {
+			$password = make_ssha384_password($password);
+		}
+		if ( $hash == "SSHA512" ) {
+			$password = make_ssha512_password($password);
+		}
+		if ( $hash == "SHA" ) {
+			$password = make_sha_password($password);
+		}
+		if ( $hash == "SHA256" ) {
+			$password = make_sha256_password($password);
+		}
+		if ( $hash == "SHA384" ) {
+			$password = make_sha384_password($password);
+		}
+		if ( $hash == "SHA512" ) {
+			$password = make_sha512_password($password);
+		}
+		if ( $hash == "SMD5" ) {
+			$password = make_smd5_password($password);
+		}
+		if ( $hash == "MD5" ) {
+			$password = make_md5_password($password);
+		}
+		if ( $hash == "CRYPT" ) {
+			$password = make_crypt_password($password, $hash_options);
+		}
+	}
+	
+	# Set password value
+	if ( $ad_mode ) {
+		$userdata["unicodePwd"] = $password;
+		if ( $ad_options['force_unlock'] ) {
+			$userdata["lockoutTime"] = 0;
+		}
+		if ( $ad_options['force_pwd_change'] ) {
+			$userdata["pwdLastSet"] = 0;
+		}
+	} else {
+		$userdata["userPassword"] = $password;
+	}
+	
+	# Shadow options
+	if ( $shadow_options['update_shadowLastChange'] ) {
+		$userdata["shadowLastChange"] = floor($time / 86400);
+	}
+	
+	if ( $shadow_options['update_shadowExpire'] ) {
+		if ( $shadow_options['shadow_expire_days'] > 0) {
+			$userdata["shadowExpire"] = floor(($time / 86400) + $shadow_options['shadow_expire_days']);
+		} else {
+			$userdata["shadowExpire"] = $shadow_options['shadow_expire_days'];
+		}
+	}
+	
+	# Commit insert on directory
+	$replace = ldap_add($ldap, $dn, $userdata);
+	
+	$errno = ldap_errno($ldap);
+	
+	if ( $errno ) {
+		$result = "createerror";
+		error_log("LDAP - Create user error $errno (".ldap_error($ldap).")");
+	} else {
+		$result = "usercreated";
+	}
+	
+	return $result;
+}
+
+function send_register_notify_mail($mailer, $mails, $subject, $message, $data) {
+	foreach($mails as $mail) {
+		if ( !send_mail($mailer, $mail, $mail_from, $mail_from_name, $subject, $message, $data) ) {
+			error_log("Error while sending registration email to $mail (about user ".$data['login'].")");
+		}
+	}
 }

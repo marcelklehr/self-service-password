@@ -13,6 +13,20 @@
             </div>
             <div class="navbar-collapse collapse">
               <ul class="nav navbar-nav">
+              <li class="<?php if ( $action === "change") { echo "active"; } ?>">
+                  <a href="?action=change"
+                     data-toggle="menu-popover"
+                     data-content="<?php echo htmlentities(strip_tags($messages["changehelp"])); ?>"
+                  ><i class="fa fa-fw fa-lock"></i> <?php echo $messages["menuchange"]; ?></a>
+                </li>
+                <?php if ( $use_register ) { ?>
+                <li class="<?php if ( $action === "register") { echo "active"; } ?>">
+                  <a href="?action=register"
+                     data-toggle="menu-popover"
+                     data-content="<?php echo htmlentities(strip_tags($messages["createhelp"])); ?>"
+                  ><i class="fa fa-fw fa-user-plus"></i> <?php echo $messages["menuregister"]; ?></a>
+                </li>
+                <?php } ?>
                 <?php if ( $use_questions ) { ?>
                 <li class="<?php if ( $action === "resetbyquestions" or $action === "setquestions" ) { echo "active"; } ?>">
                   <a href="?action=resetbyquestions"

@@ -36,9 +36,9 @@ $debug = false;
 # LDAP
 $ldap_url = "ldap://localhost";
 $ldap_starttls = false;
-$ldap_binddn = "cn=manager,dc=example,dc=com";
-$ldap_bindpw = "secret";
-$ldap_base = "dc=example,dc=com";
+$ldap_binddn = "cn=admin,dc=o4i,dc=de";
+$ldap_bindpw = "o4i.pw";
+$ldap_base = "dc=o4i,dc=de";
 $ldap_login_attribute = "uid";
 $ldap_fullname_attribute = "cn";
 $ldap_filter = "(&(objectClass=person)($ldap_login_attribute={login}))";
@@ -79,7 +79,7 @@ $shadow_options['shadow_expire_days'] = -1;
 # clear (the default)
 # auto (will check the hash of current password)
 # This option is not used with ad_mode = true
-$hash = "clear";
+$hash = "SHA256";
 
 # Prefix to use for salt with CRYPT
 $hash_options['crypt_salt_prefix'] = "$6$";
@@ -88,7 +88,7 @@ $hash_options['crypt_salt_length'] = "6";
 # Local password policy
 # This is applied before directory password policy
 # Minimal length
-$pwd_min_length = 0;
+$pwd_min_length = 6;
 # Maximal length
 $pwd_max_length = 0;
 # Minimal lower characters
@@ -115,7 +115,7 @@ $use_pwnedpasswords = false;
 # always
 # never
 # onerror
-$pwd_show_policy = "never";
+$pwd_show_policy = "onerror";
 # Position of password policy constraints message:
 # above - the form
 # below - the form
@@ -152,7 +152,7 @@ $notify_on_sshkey_change = false;
 # Use questions/answers?
 # true (default)
 # false
-$use_questions = true;
+$use_questions = false;
 
 # Answer attribute should be hidden to users!
 $answer_objectClass = "extensibleObject";
@@ -182,19 +182,19 @@ $mail_attribute = "mail";
 # Get mail address directly from LDAP (only first mail entry)
 # and hide mail input field
 # default = false
-$mail_address_use_ldap = false;
+$mail_address_use_ldap = true;
 # Who the email should come from
-$mail_from = "admin@example.com";
-$mail_from_name = "Self Service Password";
-$mail_signature = "";
+$mail_from = "o4i@arch.kit.edu";
+$mail_from_name = "O4I Self-service";
+$mail_signature = "\n\nRegards,\nThe O4I Administrators";
 # Notify users anytime their password is changed
-$notify_on_change = false;
+$notify_on_change = true;
 # PHPMailer configuration (see https://github.com/PHPMailer/PHPMailer)
-$mail_sendmailpath = '/usr/sbin/sendmail';
+#$mail_sendmailpath = '/usr/sbin/sendmail';
 $mail_protocol = 'smtp';
 $mail_smtp_debug = 0;
 $mail_debug_format = 'error_log';
-$mail_smtp_host = 'localhost';
+$mail_smtp_host = 'smarthost.kit.edu';
 $mail_smtp_auth = false;
 $mail_smtp_user = '';
 $mail_smtp_pass = '';
@@ -211,7 +211,7 @@ $mail_newline = PHP_EOL;
 
 ## SMS
 # Use sms
-$use_sms = true;
+$use_sms = false;
 # SMS method (mail, api)
 $sms_method = "mail";
 $sms_api_lib = "lib/smsapi.inc.php";
@@ -238,7 +238,27 @@ $max_attempts = 3;
 # Encryption, decryption keyphrase, required if $crypt_tokens = true
 # Please change it to anything long, random and complicated, you do not have to remember it
 # Changing it will also invalidate all previous tokens and SMS codes
-$keyphrase = "secret";
+$keyphrase = 'SET NEW RANDOM STRING HERE';
+
+## REGISTER
+# Allow registration
+$use_register = true;
+# Allow registration via SSL Client authentication
+$register_sslauth = true;
+$register_notify_mail_addresses = array(
+		'thomas.besser@kit.edu',
+		'marcel.klehr9@kit.edu'
+);
+# Automatically generate uid from user's full Name (cn)
+$register_autocreate_login = true;
+# The group in which new users are created
+$register_ldap_group = 'ou=inactive,ou=users,dc=o4i,dc=de';
+# SERVER variable to use as login name, when using SSL Client auth
+#$register_sslauth_loginoverride = $_SERVER['SSL_CLIENT_SAN_Email_0'];
+$register_sslauth_cnoverride = $_SERVER['SSL_CLIENT_S_DN_CN'];
+$register_sslauth_loginoverride = null;
+$register_sslauth_mailoverride = $_SERVER['SSL_CLIENT_SAN_Email_0'];
+$register_sslauth_ldap_group = 'ou=active,ou=users,dc=o4i,dc=de';
 
 # Reset URL (if behind a reverse proxy)
 #$reset_url = $_SERVER['HTTP_X_FORWARDED_PROTO'] . "://" . $_SERVER['HTTP_X_FORWARDED_HOST'] . $_SERVER['SCRIPT_NAME'];
@@ -247,20 +267,19 @@ $keyphrase = "secret";
 $show_help = true;
 
 # Default language
-$lang = "en";
 
 # List of authorized languages. If empty, all language are allowed.
 # If not empty and the user's browser language setting is not in that list, language from $lang will be used.
-$allowed_lang = array();
+$allowed_lang = array('en', 'de');
 
 # Display menu on top
 $show_menu = true;
 
 # Logo
-$logo = "images/ltb-logo.png";
+$logo = "images/o4i.svg";
 
 # Background image
-$background_image = "images/unsplash-space.jpeg";
+$background_image = "images/unsplash-space.jpeg!pleasedont";
 
 # Where to log password resets - Make sure apache has write permission
 # By default, they are logged in Apache log
@@ -289,7 +308,8 @@ $recaptcha_request_method = null;
 # change
 # sendtoken
 # sendsms
-$default_action = "change";
+#$default_action = "change";
+$default_action = FALSE;
 
 ## Extra messages
 # They can also be defined in lang/ files
@@ -302,7 +322,7 @@ $default_action = "change";
 
 # Hide some messages to not disclose sensitive information
 # These messages will be replaced by badcredentials error
-#$obscure_failure_messages = array("mailnomatch");
+$obscure_failure_messages = array(/*"mailnomatch"*/);
 
 # Allow to override current settings with local configuration
 if (file_exists (__DIR__ . '/config.inc.local.php')) {

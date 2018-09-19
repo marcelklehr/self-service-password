@@ -108,6 +108,7 @@ if ( $change_sshkey ) { array_push( $available_actions, "changesshkey"); }
 if ( $use_questions ) { array_push( $available_actions, "resetbyquestions", "setquestions"); }
 if ( $use_tokens ) { array_push( $available_actions, "resetbytoken", "sendtoken"); }
 if ( $use_sms ) { array_push( $available_actions, "resetbytoken", "sendsms"); }
+if ( $use_register ) { array_push( $available_actions, "register", "createbytoken"); }
 
 # Ensure requested action is available, or fall back to default
 if ( ! in_array($action, $available_actions) ) { $action = $default_action; }
@@ -208,7 +209,7 @@ $mailer->LE            = $mail_newline;
 
 <?php if ( $logo ) { ?>
 <a href="index.php" alt="Home">
-<img src="<?php echo $logo; ?>" alt="Logo" class="logo img-responsive center-block" />
+<img src="<?php echo $logo; ?>" alt="Logo" class="logo img-responsive center-block" style="height: 200px;" />
 </a>
 <?php } ?>
 
@@ -221,7 +222,7 @@ $mailer->LE            = $mail_newline;
             </div>
             <?php
         }
-    } else {
+    } else if ($action) {
         include("pages/$action.php");
     }
 ?>
